@@ -1,65 +1,142 @@
-# Svelte library
+# @dugalcedo/moose
 
-Everything you need to build a Svelte library, powered by [`sv`](https://npmjs.com/package/sv).
-
-Read more about creating a library [in the docs](https://svelte.dev/docs/kit/packaging).
-
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
+A minimal toolkit for full-stack SvelteKit. Server-side request handling, reactive fetching, and form state — with Zod validation and end-to-end type inference.
 
 ```sh
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
+npm i @dugalcedo/moose
 ```
 
-To recreate this project with the same configuration:
+Not a UI library. No CSS imposed. Svelte 5 only.
 
-```sh
-# recreate this project
-bun x sv@0.12.8 create --template library --types ts --install bun .
+---
+
+## `defineHandler` — server endpoints
+
+Write endpoints without touching `Response` objects or `try/catch`. Return a value to respond. Throw to error.
+
+```ts
+// src/routes/api/math/+server.ts
+import { defineHandler } from '@dugalcedo/moose/server'
+import { z } from 'zod'
+
+export const GET = defineHandler({
+    handler: async () => {
+        return { json: { number: Math.floor(Math.random() * 100) } }
+    }
+})
+
+export const POST = defineHandler({
+    body: z.object({
+        x: z.number(),
+        y: z.number(),
+        op: z.enum(['+', '-'])
+    }),
+    handler: async (evt) => {
+        const { x, y, op } = evt.body
+        return { json: { result: op === '+' ? x + y : x - y } }
+    }
+})
 ```
 
-## Developing
+Export inferred types for the frontend. No duplication, no drift.
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```ts
+export type MathInput  = typeof POST.inferInput
+export type MathResult = typeof POST.inferOutput
 ```
 
-Everything inside `src/lib` is part of your library, everything inside `src/routes` can be used as a showcase or preview app.
+Thrown `ZodError`s are automatically serialized and returned as structured error responses. A JWT helper is also included.
 
-## Building
+---
 
-To build your library:
+## `request()` — reactive fetching
 
-```sh
-npm pack
+Reactive fetch with typed state. `isPending`, `data`, and `error` update automatically.
+
+```svelte
+<script lang="ts">
+    import { request } from '@dugalcedo/moose'
+    import type { MathResult } from './+server'
+
+    const math = request<MathResult>('/api/math', { method: 'POST' })
+</script>
+
+<button onclick={() => math.send({ x: 4, y: 2, op: '+' })}>
+    Calculate
+</button>
+
+{#if math.state.isPending}
+    <p>Loading...</p>
+{:else if math.state.isError}
+    <p>Error: {math.state.error?.message}</p>
+{:else if math.state.data}
+    <p>Result: {math.state.data.result}</p>
+{/if}
 ```
 
-To create a production version of your showcase app:
+Use `startPolling(ms)` to poll on an interval. Use `sharedRequest()` at module level to share state across components.
 
-```sh
-npm run build
+---
+
+## `defineForm()` — form state
+
+Form state with Zod or custom validation. Server-side Zod errors automatically map back to field errors.
+
+```svelte
+<script lang="ts">
+    import { defineForm } from '@dugalcedo/moose'
+    import type { MathInput, MathResult } from './+server'
+    import { z } from 'zod'
+
+    const form = defineForm<MathInput, MathResult>({
+        url: '/api/math',
+        initialFormData: { x: 0, y: 0, op: '+' },
+        validate: z.object({
+            x: z.number(),
+            y: z.number(),
+            op: z.enum(['+', '-'])
+        }),
+        onGoodRes: (data) => {
+            alert('Result: ' + data.result)
+        }
+    })
+</script>
+
+<form onsubmit={form.handler}>
+    <input type="number" bind:value={form.f.data.x} />
+    <span>{form.f.errors.x?.[0]}</span>
+
+    <input type="number" bind:value={form.f.data.y} />
+    <span>{form.f.errors.y?.[0]}</span>
+
+    <button type="submit" disabled={form.request.isPending}>
+        Calculate
+    </button>
+</form>
 ```
 
-You can preview the production build with `npm run preview`.
+Use a `prepare` function to transform form data before it's sent. Use `onBadRes` to handle error responses.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+---
 
-## Publishing
+## `Field` / `FieldError` / `FieldHint` — form components
 
-Go into the `package.json` and give your package the desired name through the `"name"` option. Also consider adding a `"license"` field and point it to a `LICENSE` file which you can create from a template (one popular option is the [MIT license](https://opensource.org/license/mit/)).
+Optional, unstyled components that wire up IDs and aria attributes automatically. No CSS is included or imposed.
 
-To publish your library to [npm](https://www.npmjs.com):
+```svelte
+<script lang="ts">
+    import { Field, FieldError, FieldHint } from '@dugalcedo/moose'
+</script>
 
-```sh
-npm publish
+<Field
+    label="Email"
+    error={form.f.errors.email}
+    hint="We won't share your address."
+>
+    <input type="email" bind:value={form.f.data.email} />
+    <FieldError />
+    <FieldHint />
+</Field>
 ```
+
+`FieldError` and `FieldHint` are optional — handle errors and hints however you like. You don't have to use `Field` at all.
