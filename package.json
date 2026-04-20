@@ -1,13 +1,13 @@
 {
 	"name": "@dugalcedo/moose",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"prepack": "svelte-kit sync && svelte-package && publint",
-		"bublish": "pnpm publish --access public",
+		"moose:publish": "pnpm publish --access public",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
@@ -51,6 +51,7 @@
 		"svelte"
 	],
 	"dependencies": {
+		"drizzle-orm": "^0.45.2",
 		"jsonwebtoken": "^9.0.3",
 		"zod": "^4.3.6"
 	}

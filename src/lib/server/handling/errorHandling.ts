@@ -3,6 +3,7 @@ import type { Json } from "./types.ts"
 import { deriveStatusCodeFromNumber } from "./util.ts"
 import { ZodError } from "zod"
 import { t } from "./util.ts"
+import { isDrizzleError, handleDrizzleError } from "./drizzleErrorHandling.ts"
 
 export const handleError = (unknownError: unknown, evt: RequestEvent): Response => {
   // STRING
@@ -26,6 +27,11 @@ export const handleError = (unknownError: unknown, evt: RequestEvent): Response 
   if (unknownError instanceof ZodError) {
     log("Validation error", evt)
     return Response.json({ type: "zod", issues: unknownError.issues }, { status: 422 })
+  }
+
+  // DRIZZLE ERROR
+  if (isDrizzleError(unknownError)) {
+    return handleDrizzleError(unknownError, evt)
   }
 
   // ERROR INSTANCE

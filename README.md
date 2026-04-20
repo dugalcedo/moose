@@ -45,7 +45,19 @@ export type MathInput  = typeof POST.inferInput
 export type MathResult = typeof POST.inferOutput
 ```
 
-Thrown `ZodError`s are automatically serialized and returned as structured error responses. A JWT helper is also included.
+Thrown errors are automatically caught and serialized:
+
+| Thrown | Response |
+|---|---|
+| `ZodError` | 422 with structured `{ type: "zod", issues }` |
+| Drizzle unique constraint violation | 409 with `{ message: "<column> is already taken" }` |
+| Drizzle query error | 500 with `{ message: "Database query failed" }` |
+| `Error` | 500 with `{ message }` |
+| `[status, message]` | `status` with `{ message }` |
+| number | derived status code |
+| string | 500 with `{ message }` |
+
+Drizzle errors are detected from the underlying driver (PostgreSQL, MySQL, SQLite) without any configuration. A JWT helper is also included.
 
 ---
 
