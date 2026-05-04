@@ -27,3 +27,5 @@ export type Json = (
     | Json[]
     | { [key: string]: Json }
 )
+
+export type MooseJwtPayload = { [key: string]: Json }

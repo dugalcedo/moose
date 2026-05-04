@@ -1,6 +1,6 @@
 {
 	"name": "@dugalcedo/moose",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
@@ -40,6 +40,7 @@
 		"@sveltejs/kit": "^2.50.2",
 		"@sveltejs/package": "^2.5.7",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
+		"@types/bcryptjs": "^3.0.0",
 		"@types/jsonwebtoken": "^9.0.10",
 		"publint": "^0.3.17",
 		"svelte": "^5.51.0",
@@ -51,7 +52,9 @@
 		"svelte"
 	],
 	"dependencies": {
+		"bcryptjs": "^3.0.3",
 		"dayjs": "^1.11.20",
+		"dotenv": "^17.4.2",
 		"drizzle-orm": "^0.45.2",
 		"jsonwebtoken": "^9.0.3",
 		"zod": "^4.3.6"
